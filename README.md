@@ -1,155 +1,155 @@
-# Distributed Fault-Tolerant Subscriber Service (DFS-Mesh)
+# Dağıtık ve Hata Toleranslı Abonelik Servisi (DFS-Mesh)
 
 [![Java](https://img.shields.io/badge/Java-11%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Protocol Buffers](https://img.shields.io/badge/Protocol%20Buffers-3.21-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://protobuf.dev/)
 [![Maven](https://img.shields.io/badge/Apache_Maven-3.8%2B-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)](https://maven.apache.org/)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](#license)
+[![License](https://img.shields.io/badge/Lisans-MIT-green?style=for-the-badge)](#lisans)
 
-A high-performance, fault-tolerant distributed subscription and telemetry mesh built in Java. The system implements leaderless peer-to-peer data replication, automated client failover, binary serialization via Google Protocol Buffers, and real-time cluster telemetry monitoring across Python and Ruby admin clients.
+Java ile geliştirilmiş, yüksek performanslı ve hata toleranslı (fault-tolerant) bir dağıtık abonelik ve telemetri servisidir. Sistem; lidersiz eşler arası (Peer-to-Peer) veri replikasyonu, otomatik istemci yük devretmesi (client failover), Google Protocol Buffers ile ikili serileştirme ve Python/Ruby tabanlı yönetim istemcileri ile gerçek zamanlı küme izleme mekanizmalarını içerir.
 
 ---
 
-## Architecture Overview
+## Mimari Genel Bakış
 
-The system operates as a distributed cluster of nodes that coordinate subscriber states, monitor node health, and replicate incoming traffic in real-time.
+Sistem, abone durumlarını senkronize eden, düğüm (node) sağlığını izleyen ve gelen trafiği gerçek zamanlı olarak çoğaltan (replicate eden) dağıtık bir düğüm kümesi olarak çalışır.
 
 ```mermaid
 graph TD
-    subgraph Clients & Admin
-        C1["Java Test Client"]
-        C2["External Subscriber"]
-        ADM["Ruby Admin Console (admin.rb)"]
-        PLT["Python Real-time Plotter (plotter.py)"]
+    subgraph İstemciler ve Yönetim
+        C1["Java Test İstemcisi"]
+        C2["Harici Abone"]
+        ADM["Ruby Yönetim Konsolu (admin.rb)"]
+        PLT["Python Gerçek Zamanlı Grafikleyici (plotter.py)"]
     end
 
-    subgraph Distributed Cluster Nodes
-        S1["Server 1<br/>Admin: 7001 | Client: 6001 | Peer: 5001"]
-        S2["Server 2<br/>Admin: 7002 | Client: 6002 | Peer: 5002"]
-        S3["Server 3<br/>Admin: 7003 | Client: 6003 | Peer: 5003"]
+    subgraph Dağıtık Küme Düğümleri (Cluster Nodes)
+        S1["Sunucu 1 (Server 1)<br/>Yönetim: 7001 | İstemci: 6001 | Eş (Peer): 5001"]
+        S2["Sunucu 2 (Server 2)<br/>Yönetim: 7002 | İstemci: 6002 | Eş (Peer): 5002"]
+        S3["Sunucu 3 (Server 3)<br/>Yönetim: 7003 | İstemci: 6003 | Eş (Peer): 5003"]
     end
 
     C1 -->|TCP / Protobuf| S1
-    C2 -->|Failover Switch| S2
-    ADM -->|Telemetry Query| S1
-    PLT -->|Metrics Stream| S2 & S3
+    C2 -->|Failover Geçişi| S2
+    ADM -->|Telemetri Sorgusu| S1
+    PLT -->|Metrik Akışı| S2 & S3
 
-    S1 <-->|P2P State Sync| S2
-    S2 <-->|P2P State Sync| S3
-    S3 <-->|P2P State Sync| S1
+    S1 <-->|P2P Durum Senkronizasyonu| S2
+    S2 <-->|P2P Durum Senkronizasyonu| S3
+    S3 <-->|P2P Durum Senkronizasyonu| S1
 ```
 
 ---
 
-## Key Features
+## Temel Özellikler
 
-- **P2P State Synchronization & Replication:** Nodes synchronize subscriber state across the cluster using delimited Protocol Buffer messages (`SYNC` events), preventing data loss during node outages.
-- **Dynamic Client Failover:** Clients maintain awareness of active cluster topologies and transparently migrate to adjacent healthy nodes upon socket disconnection.
-- **Google Protocol Buffers Serialization:** Compact, binary-efficient network payloads for high-throughput messaging (`Subscriber`, `Configuration`, `Capacity`, `Message`).
-- **Thread-Safe Concurrency Model:** Utilizes `ConcurrentHashMap`, explicit `ReentrantLock` boundaries, atomic counters, and `CompletableFuture` asynchronous listener loops to guarantee linearizability and deadlock prevention under concurrent load.
-- **Multi-Language Telemetry Ecosystem:**
-  - **Java Core:** High-throughput socket engine and cluster replication.
-  - **Ruby Admin Panel (`admin.rb`):** Dynamic cluster configuration and remote capacity diagnostics.
-  - **Python Live Monitor (`plotter.py`):** Real-time animated load distribution graph and CLI metrics reporting.
+- **P2P Durum Senkronizasyonu ve Replikasyon:** Düğümler, abone durumunu küme genelinde Protocol Buffer mesajları (`SYNC` olayları) kullanarak eşitler; böylece bir düğüm devre dışı kalsa bile veri kaybı yaşanmaz.
+- **Dinamik İstemci Yük Devretme (Failover):** İstemciler küme topolojisinden haberdardır. Bir sunucu çöktüğünde veya bağlantı koptuğunda, istemci bağlantıyı otomatik ve şeffaf olarak sağlıklı bir diğer düğüme aktarır.
+- **Google Protocol Buffers ile İkili Serileştirme:** Ağ üzerinde yüksek verim ve düşük gecikme sağlayan, kesin tipli ikili mesajlaşma formatı (`Subscriber`, `Configuration`, `Capacity`, `Message`).
+- **İş Parçacığı Güvenli (Thread-Safe) Eşzamanlılık:** Eşzamanlı yük altında kilitlenmeleri (deadlock) önlemek ve veri tutarlılığını sağlamak için `ConcurrentHashMap`, açık `ReentrantLock` sınırları, atomik sayaçlar (`AtomicInteger`) ve asenkron `CompletableFuture` dinleyici döngüleri kullanılır.
+- **Çok Dilli (Multi-Language) Telemetri Ekosistemi:**
+  - **Java Çekirdeği:** Yüksek verimli soket altyapısı ve küme replikasyonu.
+  - **Ruby Yönetim Paneli (`admin.rb`):** Dinamik küme yapılandırması ve uzaktan kapasite/sağlık teşhisi.
+  - **Python Canlı İzleme (`plotter.py`):** Gerçek zamanlı grafik arayüzü (`matplotlib`) ve terminal tabanlı metrik raporlama.
 
 ---
 
-## Protobuf Definitions
+## Protobuf Şemaları
 
-The network protocol is strictly typed via Google Protocol Buffers:
+Ağ protokolü Google Protocol Buffers ile katı bir şekilde tiplendirilmiştir:
 
-| Schema | Purpose | Key Fields |
+| Şema Dosyası | Amacı | Önemli Alanlar |
 | :--- | :--- | :--- |
-| [`Subscriber.proto`](protobufs/Subscriber.proto) | Subscriber entity and lifecycle | `id`, `name_surname`, `status` (`ONLINE`/`OFFLINE`), `last_accessed` |
-| [`Configuration.proto`](protobufs/Configuration.proto) | Cluster topology & fault tolerance degree | `server_id`, `fault_tolerance`, `peer_servers` |
-| [`Capacity.proto`](protobufs/Capacity.proto) | Real-time node capacity reports | `server_id`, `server_status`, `timestamp` |
-| [`Message.proto`](protobufs/Message.proto) | Inter-node replication envelope | `type` (`SYNC`, `HEARTBEAT`), `payload`, `timestamp` |
+| [`Subscriber.proto`](protobufs/Subscriber.proto) | Abone varlığı ve yaşam döngüsü | `id`, `name_surname`, `status` (`ONLINE`/`OFFLINE`), `last_accessed` |
+| [`Configuration.proto`](protobufs/Configuration.proto) | Küme topolojisi ve hata toleransı seviyesi | `server_id`, `fault_tolerance`, `peer_servers` |
+| [`Capacity.proto`](protobufs/Capacity.proto) | Düğümlerin gerçek zamanlı kapasite ve yük raporu | `server_id`, `server_status`, `timestamp` |
+| [`Message.proto`](protobufs/Message.proto) | Düğümler arası replikasyon ve eşitleme zarfı | `type` (`SYNC`, `HEARTBEAT`), `payload`, `timestamp` |
 
 ---
 
-## Directory Structure
+## Proje Dizin Yapısı
 
 ```text
-├── protobufs/              # Protocol Buffer schema definitions
+├── protobufs/              # Protocol Buffer şema tanımları
 │   ├── Capacity.proto
 │   ├── Configuration.proto
 │   ├── Message.proto
 │   └── Subscriber.proto
 ├── src/main/java/
-│   ├── dist_servers/       # Distributed server engine
-│   │   ├── DistributedServer.java  # Core generic server node implementation
-│   │   ├── Server1.java / Server2.java / Server3.java # Configured node instances
-│   │   ├── AdminHandler.java       # Admin telemetry socket handler
-│   │   ├── ClientHandler.java      # Client subscription socket handler
-│   │   ├── ServerInterface.java    # Core server contract
-│   │   └── FaultToleranceTest.java # Cluster failover automation suite
-│   └── Clients/            # Client implementations
-│       ├── Client.java             # Failover-capable client socket
-│       └── TestClient.java         # Load and subscription simulation
-├── panel/                  # Ruby Admin Control Interface
-│   ├── admin.rb            # Admin socket client
-│   └── lib/                # Compiled Ruby Protobuf bindings
-├── plotting/               # Python Real-time Telemetry Monitor
-│   └── plotter.py          # Interactive matplotlib & CLI metrics plotter
-├── pom.xml                 # Maven build & Protobuf compilation config
+│   ├── dist_servers/       # Dağıtık sunucu motoru
+│   │   ├── DistributedServer.java  # Temel jenerik sunucu düğüm uygulaması
+│   │   ├── Server1.java / Server2.java / Server3.java # Yapılandırılmış düğüm örnekleri
+│   │   ├── AdminHandler.java       # Yönetim telemetri soket işleyicisi
+│   │   ├── ClientHandler.java      # İstemci abonelik soket işleyicisi
+│   │   ├── ServerInterface.java    # Sunucu çekirdek arayüzü
+│   │   └── FaultToleranceTest.java # Küme hata toleransı test otomasyonu
+│   └── Clients/            # İstemci uygulamaları
+│       ├── Client.java             # Failover yetenekli istemci soketi
+│       └── TestClient.java         # Yük ve abonelik simülasyonu
+├── panel/                  # Ruby Yönetim Kontrol Arayüzü
+│   ├── admin.rb            # Yönetici soket istemcisi
+│   └── lib/                # Derlenmiş Ruby Protobuf bağlayıcıları
+├── plotting/               # Python Gerçek Zamanlı Telemetri Monitörü
+│   └── plotter.py          # İnteraktif matplotlib ve CLI metrik grafikleyici
+├── pom.xml                 # Maven derleme ve Protobuf eklenti konfigürasyonu
 └── README.md
 ```
 
 ---
 
-## Getting Started
+## Kurulum ve Başlangıç
 
-### Prerequisites
-- **Java Development Kit (JDK 11+)**
-- **Apache Maven 3.8+**
-- *(Optional)* Python 3.8+ with `matplotlib` for live monitoring
-- *(Optional)* Ruby 3.x for Admin CLI
+### Gereksinimler
+- **Java Development Kit (JDK 11 veya üzeri)**
+- **Apache Maven 3.8 veya üzeri**
+- *(İsteğe bağlı)* Canlı grafik izleme için Python 3.8+ ve `matplotlib`
+- *(İsteğe bağlı)* Yönetim CLI için Ruby 3.x
 
-### Build the Project
-Compile the Protocol Buffers and build the executable JAR:
+### Projeyi Derleme
+Protocol Buffer dosyalarını derlemek ve projeyi paketlemek için:
 ```bash
 mvn clean compile
 ```
 
-To package with dependencies:
+Bağımlılıkları içeren tek bir JAR (fat-jar) oluşturmak için:
 ```bash
 mvn clean package
 ```
 
 ---
 
-## Running the Cluster
+## Kümeyi Çalıştırma
 
-### 1. Launch Server Nodes
-You can start nodes individually in separate terminals:
+### 1. Sunucu Düğümlerini Başlatma
+Düğümleri ayrı terminallerde bağımsız olarak başlatabilirsiniz:
 ```bash
-# Start Server 1 (Admin: 7001, Client: 6001, Peer: 5001)
+# Sunucu 1'i başlat (Yönetim: 7001, İstemci: 6001, Eş: 5001)
 java -cp target/classes:$(mvn dependency:build-classpath | grep -v '\[INFO\]') dist_servers.Server1
 
-# Start Server 2 (Admin: 7002, Client: 6002, Peer: 5002)
+# Sunucu 2'yi başlat (Yönetim: 7002, İstemci: 6002, Eş: 5002)
 java -cp target/classes:$(mvn dependency:build-classpath | grep -v '\[INFO\]') dist_servers.Server2
 
-# Start Server 3 (Admin: 7003, Client: 6003, Peer: 5003)
+# Sunucu 3'ü başlat (Yönetim: 7003, İstemci: 6003, Eş: 5003)
 java -cp target/classes:$(mvn dependency:build-classpath | grep -v '\[INFO\]') dist_servers.Server3
 ```
 
-### 2. Run Automated Fault-Tolerance Test
-Simulates cluster startup, configuration injection, subscriber registration, and node shutdown failover:
+### 2. Otomatik Hata Toleransı Testini Çalıştırma
+Sunucuların ayağa kalkmasını, konfigürasyon dağıtımını, abone kaydını ve sunucu çökmesi durumunda failover senaryolarını test eder:
 ```bash
 java -cp target/classes:$(mvn dependency:build-classpath | grep -v '\[INFO\]') dist_servers.FaultToleranceTest
 ```
 
-### 3. Launch Real-time Telemetry Monitor
-Run the Python live monitoring dashboard:
+### 3. Gerçek Zamanlı Telemetri Monitörünü Çalıştırma
+Python canlı izleme panelini başlatmak için:
 ```bash
-# GUI Live Animated Chart
+# Grafik Arayüzlü Canlı Monitör
 python plotting/plotter.py
 
-# Headless / Terminal Monitor Mode
+# Terminal / Konsol Tabanlı Metrik Monitörü
 python plotting/plotter.py --cli
 ```
 
 ---
 
-## License
+## Lisans
 
-This project is open-source and available under the [MIT License](LICENSE).
+Bu proje açık kaynaklı olup [MIT Lisansı](LICENSE) altında sunulmaktadır.
