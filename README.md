@@ -3,7 +3,6 @@
 [![Java](https://img.shields.io/badge/Java-11%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Protocol Buffers](https://img.shields.io/badge/Protocol%20Buffers-3.21-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://protobuf.dev/)
 [![Maven](https://img.shields.io/badge/Apache_Maven-3.8%2B-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)](https://maven.apache.org/)
-[![License](https://img.shields.io/badge/Lisans-MIT-green?style=for-the-badge)](#lisans)
 
 Java ile geliştirilmiş, yüksek performanslı ve hata toleranslı (fault-tolerant) bir dağıtık abonelik ve telemetri servisidir. Sistem; lidersiz eşler arası (Peer-to-Peer) veri replikasyonu, otomatik istemci yük devretmesi (client failover), Google Protocol Buffers ile ikili serileştirme ve Python/Ruby tabanlı yönetim istemcileri ile gerçek zamanlı küme izleme mekanizmalarını içerir.
 
@@ -11,31 +10,32 @@ Java ile geliştirilmiş, yüksek performanslı ve hata toleranslı (fault-toler
 
 ## Mimari Genel Bakış
 
-Sistem, abone durumlarını senkronize eden, düğüm (node) sağlığını izleyen ve gelen trafiği gerçek zamanlı olarak çoğaltan (replicate eden) dağıtık bir düğüm kümesi olarak çalışır.
+Sistem, abone durumlarını senkronize eden, düğüm (node) sağlığını izleyen ve gelen trafiği gerçek zamanlı olarak çoğaltan (replicate eden) dağıtık bir düğüm kümesi olarak çalışır:
 
 ```mermaid
-graph TD
-    subgraph İstemciler ve Yönetim
+flowchart TD
+    subgraph Clients ["İstemciler ve Yönetim"]
         C1["Java Test İstemcisi"]
         C2["Harici Abone"]
         ADM["Ruby Yönetim Konsolu (admin.rb)"]
-        PLT["Python Gerçek Zamanlı Grafikleyici (plotter.py)"]
+        PLT["Python Canlı Grafikleyici (plotter.py)"]
     end
 
-    subgraph Dağıtık Küme Düğümleri (Cluster Nodes)
-        S1["Sunucu 1 (Server 1)<br/>Yönetim: 7001 | İstemci: 6001 | Eş (Peer): 5001"]
-        S2["Sunucu 2 (Server 2)<br/>Yönetim: 7002 | İstemci: 6002 | Eş (Peer): 5002"]
-        S3["Sunucu 3 (Server 3)<br/>Yönetim: 7003 | İstemci: 6003 | Eş (Peer): 5003"]
+    subgraph Cluster ["Dağıtık Küme Düğümleri (Cluster Nodes)"]
+        S1["Sunucu 1 (Server 1)<br/>Yönetim: 7001 | İstemci: 6001 | Eş: 5001"]
+        S2["Sunucu 2 (Server 2)<br/>Yönetim: 7002 | İstemci: 6002 | Eş: 5002"]
+        S3["Sunucu 3 (Server 3)<br/>Yönetim: 7003 | İstemci: 6003 | Eş: 5003"]
     end
 
-    C1 -->|TCP / Protobuf| S1
-    C2 -->|Failover Geçişi| S2
-    ADM -->|Telemetri Sorgusu| S1
-    PLT -->|Metrik Akışı| S2 & S3
+    C1 --> S1
+    C2 --> S2
+    ADM --> S1
+    PLT --> S2
+    PLT --> S3
 
-    S1 <-->|P2P Durum Senkronizasyonu| S2
-    S2 <-->|P2P Durum Senkronizasyonu| S3
-    S3 <-->|P2P Durum Senkronizasyonu| S1
+    S1 <--> S2
+    S2 <--> S3
+    S3 <--> S1
 ```
 
 ---
@@ -147,9 +147,3 @@ python plotting/plotter.py
 # Terminal / Konsol Tabanlı Metrik Monitörü
 python plotting/plotter.py --cli
 ```
-
----
-
-## Lisans
-
-Bu proje açık kaynaklı olup [MIT Lisansı](LICENSE) altında sunulmaktadır.
